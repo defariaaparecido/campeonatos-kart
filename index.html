@@ -12,7 +12,8 @@
     --linha:#2a2f36;
     --texto:#e9ecef;
     --texto-fraco:#8a9199;
-    --amarelo:#f5c518;
+    --brand:#c70540;
+    --brand-escuro:#8f0230;
     --verde:#3ecf6a;
     --vermelho:#e5484d;
   }
@@ -26,9 +27,9 @@
     min-height:100vh;
   }
   header{
-    background:var(--asfalto);
-    border-bottom:4px solid var(--amarelo);
-    padding:18px 20px;
+    background:#ffffff;
+    border-bottom:4px solid var(--brand);
+    padding:12px 20px;
     display:flex;
     flex-wrap:wrap;
     align-items:center;
@@ -39,24 +40,16 @@
     display:flex;
     align-items:center;
     gap:10px;
-    font-weight:800;
-    letter-spacing:1px;
-    font-size:20px;
   }
-  .marca .flag{
-    width:22px;height:22px;
-    background:
-      linear-gradient(45deg,#000 25%,transparent 25%) 0 0/10px 10px,
-      linear-gradient(45deg,transparent 75%,#000 75%) 0 0/10px 10px,
-      linear-gradient(45deg,#000 25%,transparent 25%) 5px 5px/10px 10px,
-      linear-gradient(45deg,transparent 75%,#000 75%) 5px 5px/10px 10px,
-      #fff;
-    border-radius:3px;
+  .marca img{
+    height:52px;
+    width:auto;
+    display:block;
   }
   select#seletorCampeonato{
-    background:var(--asfalto2);
-    color:var(--texto);
-    border:1px solid var(--linha);
+    background:#f4f5f6;
+    color:#15181c;
+    border:1px solid #d8dbde;
     border-radius:8px;
     padding:10px 14px;
     font-size:14px;
@@ -71,15 +64,15 @@
   }
   button.botao-teste{
     background:transparent;
-    color:var(--amarelo);
-    border:1px solid var(--amarelo);
+    color:var(--brand);
+    border:1px solid var(--brand);
     border-radius:8px;
     padding:9px 14px;
     font-size:13px;
     font-weight:700;
     cursor:pointer;
   }
-  button.botao-teste:hover{ background:rgba(245,197,24,0.1); }
+  button.botao-teste:hover{ background:rgba(199,5,64,0.14); }
   #inputArquivoTeste{ display:none; }
   main{
     max-width:1100px;
@@ -89,7 +82,7 @@
   #statusBox{
     background:var(--asfalto2);
     border:1px solid var(--linha);
-    border-left:4px solid var(--amarelo);
+    border-left:4px solid var(--brand);
     padding:12px 16px;
     border-radius:8px;
     margin-bottom:18px;
@@ -116,8 +109,8 @@
     border-bottom:3px solid transparent;
   }
   .aba.ativa{
-    color:var(--amarelo);
-    border-bottom-color:var(--amarelo);
+    color:var(--brand);
+    border-bottom-color:var(--brand);
   }
   .painel{ display:none; }
   .painel.ativo{ display:block; }
@@ -148,7 +141,7 @@
     font-weight:700;
     padding:8px;
     text-align:center;
-    border-bottom:2px solid var(--amarelo);
+    border-bottom:2px solid var(--brand);
     position:sticky;
     top:0;
   }
@@ -162,12 +155,12 @@
   }
   tbody td.col-pos{ text-align:left; color:var(--texto-fraco); font-weight:700; width:34px; }
   tbody td.col-nome{ text-align:left; font-weight:600; }
-  tbody td.col-total{ text-align:left; font-weight:800; color:var(--amarelo); }
+  tbody td.col-total{ text-align:left; font-weight:800; color:var(--brand); }
   tbody tr:nth-child(odd){ background:rgba(255,255,255,0.02); }
-  tbody tr:hover{ background:rgba(245,197,24,0.06); }
+  tbody tr:hover{ background:rgba(199,5,64,0.08); }
   .ok-presenca{ color:var(--verde); font-weight:700; }
   .falta-presenca{ color:var(--vermelho); font-weight:700; }
-  .marca-troca{ color:var(--amarelo); font-weight:700; }
+  .marca-troca{ color:var(--brand); font-weight:700; }
   .vazio{ color:var(--texto-fraco); }
   footer{
     text-align:center;
@@ -185,7 +178,7 @@
 <body>
 
 <header>
-  <div class="marca"><span class="flag"></span> VIAKART</div>
+  <div class="marca"><img src="logo.png" alt="VIAKART"></div>
   <div class="controles">
     <select id="seletorCampeonato"></select>
     <button class="botao-teste" id="botaoTeste">↑ Testar arquivo</button>
