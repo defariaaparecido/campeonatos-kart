@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VIAKART · Campeonatos</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --asfalto:#15181c;
+    --asfalto2:#1d2126;
+    --linha:#2a2f36;
+    --texto:#e9ecef;
+    --texto-fraco:#8a9199;
+    --amarelo:#f5c518;
+    --verde:#3ecf6a;
+    --vermelho:#e5484d;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    background:
+      repeating-linear-gradient(90deg,#1a1d21 0 40px,#181b1f 40px 80px);
+    color:var(--texto);
+    min-height:100vh;
+  }
+  header{
+    background:var(--asfalto);
+    border-bottom:4px solid var(--amarelo);
+    padding:18px 20px;
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:14px;
+    justify-content:space-between;
+  }
+  .marca{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-weight:800;
+    letter-spacing:1px;
+    font-size:20px;
+  }
+  .marca .flag{
+    width:22px;height:22px;
+    background:
+      linear-gradient(45deg,#000 25%,transparent 25%) 0 0/10px 10px,
+      linear-gradient(45deg,transparent 75%,#000 75%) 0 0/10px 10px,
+      linear-gradient(45deg,#000 25%,transparent 25%) 5px 5px/10px 10px,
+      linear-gradient(45deg,transparent 75%,#000 75%) 5px 5px/10px 10px,
+      #fff;
+    border-radius:3px;
+  }
+  select#seletorCampeonato{
+    background:var(--asfalto2);
+    color:var(--texto);
+    border:1px solid var(--linha);
+    border-radius:8px;
+    padding:10px 14px;
+    font-size:14px;
+    font-weight:600;
+    min-width:220px;
+  }
+  .controles{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    flex-wrap:wrap;
+  }
+  button.botao-teste{
+    background:transparent;
+    color:var(--amarelo);
+    border:1px solid var(--amarelo);
+    border-radius:8px;
+    padding:9px 14px;
+    font-size:13px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  button.botao-teste:hover{ background:rgba(245,197,24,0.1); }
+  #inputArquivoTeste{ display:none; }
+  main{
+    max-width:1100px;
+    margin:0 auto;
+    padding:20px;
+  }
+  #statusBox{
+    background:var(--asfalto2);
+    border:1px solid var(--linha);
+    border-left:4px solid var(--amarelo);
+    padding:12px 16px;
+    border-radius:8px;
+    margin-bottom:18px;
+    font-size:14px;
+    color:var(--texto-fraco);
+  }
+  #statusBox.ok{ border-left-color:var(--verde); }
+  #statusBox.erro{ border-left-color:var(--vermelho); color:var(--texto); }
+  .abas{
+    display:flex;
+    gap:6px;
+    margin-bottom:16px;
+    flex-wrap:wrap;
+    border-bottom:1px solid var(--linha);
+  }
+  .aba{
+    background:transparent;
+    border:none;
+    color:var(--texto-fraco);
+    padding:12px 16px;
+    font-size:14px;
+    font-weight:700;
+    cursor:pointer;
+    border-bottom:3px solid transparent;
+  }
+  .aba.ativa{
+    color:var(--amarelo);
+    border-bottom-color:var(--amarelo);
+  }
+  .painel{ display:none; }
+  .painel.ativo{ display:block; }
+  .tabela-wrap{
+    overflow-x:auto;
+    background:var(--asfalto2);
+    border:1px solid var(--linha);
+    border-radius:10px;
+  }
+  table{
+    border-collapse:collapse;
+    width:100%;
+    font-size:13px;
+    white-space:nowrap;
+  }
+  thead tr.linha-etapa th{
+    background:#20242a;
+    color:var(--texto-fraco);
+    font-weight:600;
+    font-size:11px;
+    padding:6px 8px;
+    text-align:center;
+    border-bottom:1px solid var(--linha);
+  }
+  thead tr.linha-campo th{
+    background:#20242a;
+    color:var(--texto);
+    font-weight:700;
+    padding:8px;
+    text-align:center;
+    border-bottom:2px solid var(--amarelo);
+    position:sticky;
+    top:0;
+  }
+  thead th.col-pos, thead th.col-nome, thead th.col-total{
+    text-align:left;
+  }
+  tbody td{
+    padding:7px 8px;
+    text-align:center;
+    border-bottom:1px solid var(--linha);
+  }
+  tbody td.col-pos{ text-align:left; color:var(--texto-fraco); font-weight:700; width:34px; }
+  tbody td.col-nome{ text-align:left; font-weight:600; }
+  tbody td.col-total{ text-align:left; font-weight:800; color:var(--amarelo); }
+  tbody tr:nth-child(odd){ background:rgba(255,255,255,0.02); }
+  tbody tr:hover{ background:rgba(245,197,24,0.06); }
+  .ok-presenca{ color:var(--verde); font-weight:700; }
+  .falta-presenca{ color:var(--vermelho); font-weight:700; }
+  .marca-troca{ color:var(--amarelo); font-weight:700; }
+  .vazio{ color:var(--texto-fraco); }
+  footer{
+    text-align:center;
+    color:var(--texto-fraco);
+    font-size:12px;
+    padding:24px;
+  }
+  @media (max-width:640px){
+    header{ padding:14px; }
+    .marca{ font-size:16px; }
+    select#seletorCampeonato{ min-width:0; flex:1; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="marca"><span class="flag"></span> VIAKART</div>
+  <div class="controles">
+    <select id="seletorCampeonato"></select>
+    <button class="botao-teste" id="botaoTeste">↑ Testar arquivo</button>
+    <input type="file" id="inputArquivoTeste" accept=".xlsm,.xlsx">
+  </div>
+</header>
+
+<main>
+  <div id="statusBox">Carregando dados...</div>
+
+  <div class="abas">
+    <button class="aba ativa" data-painel="painelGeral">Classificação</button>
+    <button class="aba" data-painel="painelDescarte">Descarte 2 piores</button>
+    <button class="aba" data-painel="painelPresencas">Presenças</button>
+    <button class="aba" data-painel="painelTrocas">Trocas de kart</button>
+  </div>
+
+  <div class="painel ativo" id="painelGeral"><div class="tabela-wrap" id="tabGeral"></div></div>
+  <div class="painel" id="painelDescarte"><div class="tabela-wrap" id="tabDescarte"></div></div>
+  <div class="painel" id="painelPresencas"><div class="tabela-wrap" id="tabPresencas"></div></div>
+  <div class="painel" id="painelTrocas"><div class="tabela-wrap" id="tabTrocas"></div></div>
+</main>
+
+<footer>VIAKART · dados atualizados diretamente da planilha do campeonato</footer>
+
+<script src="campeonatos.js"></script>
+<script>
+// ============================================================
+// Dados embutidos (usados apenas se o fetch do GitHub falhar,
+// ou antes do primeiro carregamento). Gerados a partir da
+// planilha real na última reconstrução do site.
+// ============================================================
+var EMBEDDED = {"super-master-pro": {"geral": {"stages": [{"label": "1ª etapa", "date": "08/02/2026"}, {"label": "2ª etapa", "date": "12/03/2026"}, {"label": "3ª etapa", "date": "16/04/2026"}, {"label": "4ª etapa", "date": "30/04/2026"}, {"label": "5ª etapa", "date": "14/05/2026"}, {"label": "6ª etapa", "date": "25/06/2026"}, {"label": "7ª etapa", "date": null}, {"label": "8ª etapa", "date": null}, {"label": "9ª etapa", "date": null}, {"label": "10ª etapa", "date": null}, {"label": "11ª etapa", "date": null}, {"label": "12ª etapa", "date": null}], "pilots": [{"nome": "Marcelo Campos", "total": 74, "etapas": [{"pos": 2, "pts": 17, "bonus": null, "pen": null}, {"pos": 9, "pts": 7, "bonus": null, "pen": null}, {"pos": 5, "pts": 11, "bonus": 0, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": -1}, {"pos": 1, "pts": 20, "bonus": 0, "pen": null}, {"pos": 1, "pts": 20, "bonus": 0, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}]}, {"nome": "Alexandre Melillo", "total": 72, "etapas": [{"pos": 11, "pts": 5, "bonus": null, "pen": null}, {"pos": 1, "pts": 20, "bonus": 1, "pen": null}, {"pos": 4, "pts": 13, "bonus": 0, "pen": null}, {"pos": 2, "pts": 17, "bonus": 1, "pen": null}, {"pos": 4, "pts": 13, "bonus": 0, "pen": null}, {"pos": 16, "pts": 1, "bonus": 1, "pen": "SIM"}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}]}, {"nome": "Marcelo Mizrahy", "total": 66, "etapas": [{"pos": 1, "pts": 20, "bonus": 1, "pen": null}, {"pos": 2, "pts": 17, "bonus": null, "pen": null}, {"pos": 14, "pts": 2, "bonus": 0, "pen": null}, {"pos": 4, "pts": 13, "bonus": 0, "pen": null}, {"pos": 5, "pts": 11, "bonus": 1, "pen": null}, {"pos": 18, "pts": 1, "bonus": 0, "pen": "SIM"}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}]}, {"nome": "Álvaro Paiva", "total": 54, "etapas": [{"pos": 5, "pts": 11, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": -1}, {"pos": 3, "pts": 15, "bonus": 0, "pen": null}, {"pos": 6, "pts": 10, "bonus": 0, "pen": null}, {"pos": 10, "pts": 6, "bonus": 0, "pen": null}, {"pos": 4, "pts": 13, "bonus": 0, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}]}, {"nome": "Carlos Sampaio", "total": 54, "etapas": [{"pos": 6, "pts": 10, "bonus": null, "pen": null}, {"pos": 4, "pts": 13, "bonus": null, "pen": null}, {"pos": 12, "pts": 4, "bonus": 0, "pen": null}, {"pos": 5, "pts": 11, "bonus": 0, "pen": null}, {"pos": 9, "pts": 7, "bonus": 0, "pen": null}, {"pos": 7, "pts": 9, "bonus": 0, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}]}, {"nome": "Marcelo Sant'anna", "total": 51, "etapas": [{"pos": 17, "pts": 1, "bonus": null, "pen": null}, {"pos": 11, "pts": 5, "bonus": null, "pen": null}, {"pos": 1, "pts": 20, "bonus": 0, "pen": null}, {"pos": 8, "pts": 8, "bonus": 0, "pen": null}, {"pos": 7, "pts": 9, "bonus": 0, "pen": null}, {"pos": 8, "pts": 8, "bonus": 0, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}]}, {"nome": "Carlos Eduardo", "total": 47, "etapas": [{"pos": 18, "pts": 1, "bonus": null, "pen": null}, {"pos": 10, "pts": 6, "bonus": null, "pen": null}, {"pos": 6, "pts": 10, "bonus": 0, "pen": null}, {"pos": 9, "pts": 7, "bonus": 0, "pen": null}, {"pos": 2, "pts": 17, "bonus": 0, "pen": null}, {"pos": 10, "pts": 6, "bonus": 0, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}]}, {"nome": "Guilherme Janot", "total": 47, "etapas": [{"pos": 10, "pts": 6, "bonus": null, "pen": null}, {"pos": 6, "pts": 10, "bonus": null, "pen": null}, {"pos": 10, "pts": 6, "bonus": 0, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": 3, "pts": 15, "bonus": 0, "pen": null}, {"pos": 6, "pts": 10, "bonus": 0, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}]}, {"nome": "Marcelo Surerus", "total": 47, "etapas": [{"pos": 12, "pts": 4, "bonus": null, "pen": null}, {"pos": 3, "pts": 15, "bonus": null, "pen": null}, {"pos": 7, "pts": 9, "bonus": 0, "pen": null}, {"pos": 7, "pts": 9, "bonus": 0, "pen": null}, {"pos": 13, "pts": 3, "bonus": 0, "pen": null}, {"pos": 9, "pts": 7, "bonus": 0, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}]}, {"nome": "Alexandre Jannotti", "total": 46, "etapas": [{"pos": 13, "pts": 3, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": 2, "pts": 17, "bonus": 1, "pen": null}, {"pos": 1, "pts": 20, "bonus": 0, "pen": null}, {"pos": 11, "pts": 5, "bonus": 0, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}]}, {"nome": "Jarbas Reis", "total": 44, "etapas": [{"pos": 15, "pts": 1, "bonus": null, "pen": null}, {"pos": 5, "pts": 11, "bonus": null, "pen": null}, {"pos": 9, "pts": 7, "bonus": 0, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": 6, "pts": 10, "bonus": 0, "pen": null}, {"pos": 3, "pts": 15, "bonus": 0, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}]}, {"nome": "Wilson Cristofani", "total": 38, "etapas": [{"pos": 8, "pts": 8, "bonus": null, "pen": null}, {"pos": 7, "pts": 9, "bonus": null, "pen": null}, {"pos": 13, "pts": 3, "bonus": 0, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": 25, "pts": 1, "bonus": 0, "pen": "SIM"}, {"pos": 2, "pts": 17, "bonus": 0, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}]}, {"nome": "Jean Paul", "total": 32, "etapas": [{"pos": 9, "pts": 7, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": -1}, {"pos": 15, "pts": 1, "bonus": 0, "pen": null}, {"pos": 3, "pts": 15, "bonus": 0, "pen": null}, {"pos": 8, "pts": 8, "bonus": 0, "pen": null}, {"pos": 14, "pts": 2, "bonus": 0, "pen": "SIM"}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}]}, {"nome": "Euclides Almeida", "total": 26, "etapas": [{"pos": 7, "pts": 9, "bonus": null, "pen": null}, {"pos": 14, "pts": 2, "bonus": null, "pen": null}, {"pos": 11, "pts": 5, "bonus": 0, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": -3}, {"pos": 14, "pts": 2, "bonus": 0, "pen": null}, {"pos": 5, "pts": 11, "bonus": 0, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}]}, {"nome": "Roberto Maia", "total": 26, "etapas": [{"pos": 4, "pts": 13, "bonus": null, "pen": null}, {"pos": 12, "pts": 4, "bonus": null, "pen": null}, {"pos": 8, "pts": 8, "bonus": 0, "pen": null}, {"pos": 19, "pts": 1, "bonus": 0, "pen": "SIM"}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}]}, {"nome": "Marco Sant’anna", "total": 8, "etapas": [{"pos": 19, "pts": 1, "bonus": null, "pen": null}, {"pos": 8, "pts": 8, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": -1}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}]}, {"nome": "Claudio Junqueira", "total": 5, "etapas": [{"pos": 16, "pts": 1, "bonus": null, "pen": null}, {"pos": 13, "pts": 3, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": -3}, {"pos": 12, "pts": 4, "bonus": 0, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}]}, {"nome": "Marcelo Clemente", "total": 2, "etapas": [{"pos": 3, "pts": 15, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": -1}, {"pos": null, "pts": 0, "bonus": null, "pen": -3}, {"pos": null, "pts": 0, "bonus": null, "pen": -3}, {"pos": null, "pts": 0, "bonus": null, "pen": -3}, {"pos": null, "pts": 0, "bonus": null, "pen": -3}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}]}, {"nome": "Rodrigo Mercadante", "total": 2, "etapas": [{"pos": 14, "pts": 2, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}]}]}, "descarte": {"stages": [{"label": "1ª etapa", "date": "08/02/2026"}, {"label": "2ª etapa", "date": "12/03/2026"}, {"label": "3ª etapa", "date": "16/04/2026"}, {"label": "4ª etapa", "date": "30/04/2026"}, {"label": "5ª etapa", "date": "14/05/2026"}, {"label": "6ª etapa", "date": "25/06/2026"}, {"label": "7ª etapa", "date": null}, {"label": "8ª etapa", "date": null}, {"label": "9ª etapa", "date": null}, {"label": "10ª etapa", "date": null}, {"label": "11ª etapa", "date": null}, {"label": "12ª etapa", "date": null}], "pilots": [{"nome": "Marcelo Campos", "total": 67, "etapas": [{"pos": 2, "pts": 17, "bonus": null, "pen": null}, {"pos": 9, "pts": "7*", "bonus": null, "pen": null}, {"pos": 5, "pts": 11, "bonus": 0, "pen": null}, {"pos": null, "pts": "0*", "bonus": null, "pen": -1}, {"pos": 1, "pts": 20, "bonus": 0, "pen": null}, {"pos": 1, "pts": 20, "bonus": 0, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}]}, {"nome": "Alexandre Melillo", "total": 54, "etapas": [{"pos": 11, "pts": "5*", "bonus": null, "pen": null}, {"pos": 1, "pts": 20, "bonus": 1, "pen": null}, {"pos": 4, "pts": "13*", "bonus": 0, "pen": null}, {"pos": 2, "pts": 17, "bonus": 1, "pen": null}, {"pos": 4, "pts": 13, "bonus": 0, "pen": null}, {"pos": 16, "pts": 1, "bonus": 1, "pen": "SIM"}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}]}, {"nome": "Marcelo Mizrahy", "total": 53, "etapas": [{"pos": 1, "pts": 20, "bonus": 1, "pen": null}, {"pos": 2, "pts": 17, "bonus": null, "pen": null}, {"pos": 14, "pts": "2*", "bonus": 0, "pen": null}, {"pos": 4, "pts": 13, "bonus": 0, "pen": null}, {"pos": 5, "pts": "11*", "bonus": 1, "pen": null}, {"pos": 18, "pts": 1, "bonus": 0, "pen": "SIM"}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}]}, {"nome": "Álvaro Paiva", "total": 48, "etapas": [{"pos": 5, "pts": 11, "bonus": null, "pen": null}, {"pos": null, "pts": "0*", "bonus": null, "pen": -1}, {"pos": 3, "pts": 15, "bonus": 0, "pen": null}, {"pos": 6, "pts": 10, "bonus": 0, "pen": null}, {"pos": 10, "pts": "6*", "bonus": 0, "pen": null}, {"pos": 4, "pts": 13, "bonus": 0, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}]}, {"nome": "Alexandre Jannotti", "total": 46, "etapas": [{"pos": 13, "pts": 3, "bonus": null, "pen": null}, {"pos": null, "pts": "0*", "bonus": null, "pen": null}, {"pos": 2, "pts": 17, "bonus": 1, "pen": null}, {"pos": 1, "pts": 20, "bonus": 0, "pen": null}, {"pos": 11, "pts": 5, "bonus": 0, "pen": null}, {"pos": null, "pts": "0*", "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}]}, {"nome": "Marcelo Sant'anna", "total": 45, "etapas": [{"pos": 17, "pts": "1*", "bonus": null, "pen": null}, {"pos": 11, "pts": "5*", "bonus": null, "pen": null}, {"pos": 1, "pts": 20, "bonus": 0, "pen": null}, {"pos": 8, "pts": 8, "bonus": 0, "pen": null}, {"pos": 7, "pts": 9, "bonus": 0, "pen": null}, {"pos": 8, "pts": 8, "bonus": 0, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}]}, {"nome": "Jarbas Reis", "total": 43, "etapas": [{"pos": 15, "pts": "1*", "bonus": null, "pen": null}, {"pos": 5, "pts": 11, "bonus": null, "pen": null}, {"pos": 9, "pts": 7, "bonus": 0, "pen": null}, {"pos": null, "pts": "0*", "bonus": null, "pen": null}, {"pos": 6, "pts": 10, "bonus": 0, "pen": null}, {"pos": 3, "pts": 15, "bonus": 0, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}]}, {"nome": "Carlos Sampaio", "total": 43, "etapas": [{"pos": 6, "pts": 10, "bonus": null, "pen": null}, {"pos": 4, "pts": 13, "bonus": null, "pen": null}, {"pos": 12, "pts": "4*", "bonus": 0, "pen": null}, {"pos": 5, "pts": 11, "bonus": 0, "pen": null}, {"pos": 9, "pts": "7*", "bonus": 0, "pen": null}, {"pos": 7, "pts": 9, "bonus": 0, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}]}, {"nome": "Guilherme Janot", "total": 41, "etapas": [{"pos": 10, "pts": "6*", "bonus": null, "pen": null}, {"pos": 6, "pts": 10, "bonus": null, "pen": null}, {"pos": 10, "pts": 6, "bonus": 0, "pen": null}, {"pos": null, "pts": "0*", "bonus": null, "pen": null}, {"pos": 3, "pts": 15, "bonus": 0, "pen": null}, {"pos": 6, "pts": 10, "bonus": 0, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}]}, {"nome": "Carlos Eduardo", "total": 40, "etapas": [{"pos": 18, "pts": "1*", "bonus": null, "pen": null}, {"pos": 10, "pts": "6*", "bonus": null, "pen": null}, {"pos": 6, "pts": 10, "bonus": 0, "pen": null}, {"pos": 9, "pts": 7, "bonus": 0, "pen": null}, {"pos": 2, "pts": 17, "bonus": 0, "pen": null}, {"pos": 10, "pts": 6, "bonus": 0, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}]}, {"nome": "Marcelo Surerus", "total": 40, "etapas": [{"pos": 12, "pts": "4*", "bonus": null, "pen": null}, {"pos": 3, "pts": 15, "bonus": null, "pen": null}, {"pos": 7, "pts": 9, "bonus": 0, "pen": null}, {"pos": 7, "pts": 9, "bonus": 0, "pen": null}, {"pos": 13, "pts": "3*", "bonus": 0, "pen": null}, {"pos": 9, "pts": 7, "bonus": 0, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}]}, {"nome": "Wilson Cristofani", "total": 35, "etapas": [{"pos": 8, "pts": 8, "bonus": null, "pen": null}, {"pos": 7, "pts": 9, "bonus": null, "pen": null}, {"pos": 13, "pts": "3*", "bonus": 0, "pen": null}, {"pos": null, "pts": "0*", "bonus": null, "pen": null}, {"pos": 25, "pts": 1, "bonus": 0, "pen": "SIM"}, {"pos": 2, "pts": 17, "bonus": 0, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}]}, {"nome": "Jean Paul", "total": 31, "etapas": [{"pos": 9, "pts": 7, "bonus": null, "pen": null}, {"pos": null, "pts": "0*", "bonus": null, "pen": -1}, {"pos": 15, "pts": "1*", "bonus": 0, "pen": null}, {"pos": 3, "pts": 15, "bonus": 0, "pen": null}, {"pos": 8, "pts": 8, "bonus": 0, "pen": null}, {"pos": 14, "pts": 2, "bonus": 0, "pen": "SIM"}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}]}, {"nome": "Roberto Maia", "total": 26, "etapas": [{"pos": 4, "pts": 13, "bonus": null, "pen": null}, {"pos": 12, "pts": 4, "bonus": null, "pen": null}, {"pos": 8, "pts": 8, "bonus": 0, "pen": null}, {"pos": 19, "pts": 1, "bonus": 0, "pen": "SIM"}, {"pos": null, "pts": "0*", "bonus": null, "pen": null}, {"pos": null, "pts": "0*", "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}]}, {"nome": "Euclides Almeida", "total": 24, "etapas": [{"pos": 7, "pts": 9, "bonus": null, "pen": null}, {"pos": 14, "pts": "2*", "bonus": null, "pen": null}, {"pos": 11, "pts": 5, "bonus": 0, "pen": null}, {"pos": null, "pts": "0*", "bonus": null, "pen": -3}, {"pos": 14, "pts": 2, "bonus": 0, "pen": null}, {"pos": 5, "pts": 11, "bonus": 0, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}]}, {"nome": "Marco Sant’anna", "total": 8, "etapas": [{"pos": 19, "pts": 1, "bonus": null, "pen": null}, {"pos": 8, "pts": 8, "bonus": null, "pen": null}, {"pos": null, "pts": "0*", "bonus": null, "pen": -1}, {"pos": null, "pts": "0*", "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}]}, {"nome": "Claudio Junqueira", "total": 5, "etapas": [{"pos": 16, "pts": 1, "bonus": null, "pen": null}, {"pos": 13, "pts": 3, "bonus": null, "pen": null}, {"pos": null, "pts": "0*", "bonus": null, "pen": null}, {"pos": null, "pts": "0*", "bonus": null, "pen": -3}, {"pos": 12, "pts": 4, "bonus": 0, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}]}, {"nome": "Marcelo Clemente", "total": 2, "etapas": [{"pos": 3, "pts": 15, "bonus": null, "pen": null}, {"pos": null, "pts": "0*", "bonus": null, "pen": -1}, {"pos": null, "pts": "0*", "bonus": null, "pen": -3}, {"pos": null, "pts": 0, "bonus": null, "pen": -3}, {"pos": null, "pts": 0, "bonus": null, "pen": -3}, {"pos": null, "pts": 0, "bonus": null, "pen": -3}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}]}, {"nome": "Rodrigo Mercadante", "total": 2, "etapas": [{"pos": 14, "pts": 2, "bonus": null, "pen": null}, {"pos": null, "pts": "0*", "bonus": null, "pen": null}, {"pos": null, "pts": "0*", "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}, {"pos": null, "pts": 0, "bonus": null, "pen": null}]}]}, "presencas": {"etapas": ["1 ETAPA", "2 ETAPA", "3 ETAPA", "4 ETAPA", "5 ETAPA", "6 ETAPA", "7 ETAPA", "8 ETAPA", "9 ETAPA", "10 ETAPA", "11 ETAPA", "12 ETAPA", "Faltou", "PUNIÇÕES"], "pilotos": [{"nome": "Alexandre Jannotti", "valores": ["ok", "Faltou", "ok", "ok", "ok", "Faltou", "", "", "", "", "", "", "2", "0"]}, {"nome": "Alexandre Melillo", "valores": ["ok", "ok", "ok", "ok", "ok", "ok", "", "", "", "", "", "", "0", "1"]}, {"nome": "Álvaro Paiva", "valores": ["ok", "Faltou", "ok", "ok", "ok", "ok", "", "", "", "", "", "", "1", "0"]}, {"nome": "Carlos Eduardo", "valores": ["ok", "ok", "ok", "ok", "ok", "ok", "", "", "", "", "", "", "0", "0"]}, {"nome": "Carlos Sampaio", "valores": ["ok", "ok", "ok", "ok", "ok", "ok", "", "", "", "", "", "", "0", "0"]}, {"nome": "Claudio Junqueira", "valores": ["ok", "ok", "Faltou", "Faltou", "ok", "Faltou", "", "", "", "", "", "", "3", "0"]}, {"nome": "Euclides Almeida", "valores": ["ok", "ok", "ok", "Faltou", "ok", "ok", "", "", "", "", "", "", "1", "0"]}, {"nome": "Guilherme Janot", "valores": ["ok", "ok", "ok", "Faltou", "ok", "ok", "", "", "", "", "", "", "1", "0"]}, {"nome": "Jarbas Reis", "valores": ["ok", "ok", "ok", "Faltou", "ok", "ok", "", "", "", "", "", "", "1", "0"]}, {"nome": "Jean Paul", "valores": ["ok", "Faltou", "ok", "ok", "ok", "ok", "", "", "", "", "", "", "1", "1"]}, {"nome": "Marcelo Campos", "valores": ["ok", "ok", "ok", "Faltou", "ok", "ok", "", "", "", "", "", "", "1", "0"]}, {"nome": "Marcelo Clemente", "valores": ["ok", "Faltou", "Faltou", "Faltou", "Faltou", "Faltou", "", "", "", "", "", "", "5", "0"]}, {"nome": "Marcelo Mizrahy", "valores": ["ok", "ok", "ok", "ok", "ok", "ok", "", "", "", "", "", "", "0", "1"]}, {"nome": "Marcelo Sant'anna", "valores": ["ok", "ok", "ok", "ok", "ok", "ok", "", "", "", "", "", "", "0", "0"]}, {"nome": "Marcelo Surerus", "valores": ["ok", "ok", "ok", "ok", "ok", "ok", "", "", "", "", "", "", "0", "0"]}, {"nome": "Marco Sant’anna", "valores": ["ok", "ok", "Faltou", "Faltou", "Faltou", "Faltou", "", "", "", "", "", "", "4", "0"]}, {"nome": "Roberto Maia", "valores": ["ok", "ok", "ok", "ok", "Faltou", "Faltou", "", "", "", "", "", "", "2", "1"]}, {"nome": "Rodrigo Mercadante", "valores": ["ok", "Faltou", "Faltou", "Faltou", "Faltou", "Faltou", "", "", "", "", "", "", "5", "0"]}, {"nome": "Wilson Cristofani", "valores": ["ok", "ok", "ok", "Faltou", "ok", "ok", "", "", "", "", "", "", "1", "1"]}]}, "trocas": {"etapas": ["1 ETAPA", "2 ETAPA", "3 ETAPA", "4 ETAPA", "5 ETAPA", "6 ETAPA", "7 ETAPA", "8 ETAPA", "9 ETAPA", "10 ETAPA", "11 ETAPA", "12 ETAPA", "Troca"], "pilotos": [{"nome": "Alexandre Jannotti", "valores": ["", "", "", "TROCA", "", "", "", "", "", "", "", "", "1"]}, {"nome": "Alexandre Melillo", "valores": ["TROCA", "", "", "", "", "", "", "", "", "", "", "", "1"]}, {"nome": "Álvaro Paiva", "valores": ["", "", "", "TROCA", "", "", "", "", "", "", "", "", "1"]}, {"nome": "Carlos Eduardo", "valores": ["", "", "TROCA", "", "", "", "", "", "", "", "", "", "1"]}, {"nome": "Carlos Sampaio", "valores": ["", "", "", "", "", "", "", "", "", "", "", "", "0"]}, {"nome": "Claudio Junqueira", "valores": ["", "", "", "", "", "", "", "", "", "", "", "", "0"]}, {"nome": "Euclides Almeida", "valores": ["", "TROCA", "", "", "", "", "", "", "", "", "", "", "1"]}, {"nome": "Guilherme Janot", "valores": ["", "", "TROCA", "", "TROCA", "", "", "", "", "", "", "", "2"]}, {"nome": "Jarbas Reis", "valores": ["", "", "", "", "", "", "", "", "", "", "", "", "0"]}, {"nome": "Jean Paul", "valores": ["", "", "TROCA", "", "TROCA", "", "", "", "", "", "", "", "2"]}, {"nome": "Marcelo Campos", "valores": ["", "", "", "", "TROCA", "", "", "", "", "", "", "", "1"]}, {"nome": "Marcelo Clemente", "valores": ["", "", "", "", "", "", "", "", "", "", "", "", "0"]}, {"nome": "Marcelo Mizrahy", "valores": ["", "", "TROCA", "", "", "", "", "", "", "", "", "", "1"]}, {"nome": "Marcelo Sant'anna", "valores": ["", "", "", "", "", "", "", "", "", "", "", "", "0"]}, {"nome": "Marcelo Surerus", "valores": ["", "", "", "", "", "", "", "", "", "", "", "", "0"]}, {"nome": "Marco Sant’anna", "valores": ["TROCA", "", "", "", "", "", "", "", "", "", "", "", "1"]}, {"nome": "Roberto Maia", "valores": ["", "", "", "", "", "", "", "", "", "", "", "", "0"]}, {"nome": "Rodrigo Mercadante", "valores": ["", "", "", "", "", "", "", "", "", "", "", "", "0"]}, {"nome": "Wilson Cristofani", "valores": ["", "", "", "", "", "", "", "", "", "", "", "", "0"]}]}}};
+
+// ============================================================
+// Leitura e interpretação da planilha (mesma lógica para as
+// abas TABELA / Class. elimin. 2 piores res / PRESENÇAS / TROCA KART)
+// ============================================================
+
+function limpar(v){
+  if (v === undefined || v === null || v === "" ) return null;
+  if (typeof v === "number" && Number.isInteger(v)) return v;
+  return v;
+}
+
+function celula(sheet, r, c){
+  var addr = XLSX.utils.encode_cell({r:r, c:c});
+  var cell = sheet[addr];
+  if (!cell) return null;
+  if (cell.t === "d" || (cell.w && /^\d{4}-\d{2}-\d{2}/.test(String(cell.v)))) {
+    var d = cell.v instanceof Date ? cell.v : new Date(cell.v);
+    if (!isNaN(d)) {
+      var dd = String(d.getDate()).padStart(2,"0");
+      var mm = String(d.getMonth()+1).padStart(2,"0");
+      return dd+"/"+mm+"/"+d.getFullYear();
+    }
+  }
+  return cell.v;
+}
+
+function parseClassSheet(wb, nomeAba){
+  var sheet = wb.Sheets[nomeAba];
+  if (!sheet) return null;
+  var range = XLSX.utils.decode_range(sheet["!ref"]);
+  var stageCols = [];
+  for (var c = 0; c <= range.e.c; c++){
+    var v = celula(sheet, 1, c);
+    if (typeof v === "string" && v.toLowerCase().indexOf("etapa") !== -1){
+      stageCols.push({col:c, label:v, date:celula(sheet,2,c)});
+    }
+  }
+  var pilots = [];
+  for (var r = 4; r <= range.e.r; r++){
+    var nome = celula(sheet, r, 1);
+    if (typeof nome !== "string" || !nome.trim()) continue;
+    var total = limpar(celula(sheet, r, 2)) || 0;
+    var etapas = stageCols.map(function(st){
+      return {
+        pos: limpar(celula(sheet, r, st.col)),
+        pts: limpar(celula(sheet, r, st.col+1)),
+        bonus: limpar(celula(sheet, r, st.col+2)),
+        pen: limpar(celula(sheet, r, st.col+3))
+      };
+    });
+    pilots.push({nome:nome, total:total, etapas:etapas});
+  }
+  pilots.sort(function(a,b){ return (b.total||0) - (a.total||0); });
+  return {
+    stages: stageCols.map(function(s){ return {label:s.label, date:s.date}; }),
+    pilots: pilots
+  };
+}
+
+function parseSimpleSheet(wb, nomeAba){
+  var sheet = wb.Sheets[nomeAba];
+  if (!sheet) return null;
+  var range = XLSX.utils.decode_range(sheet["!ref"]);
+  var etapas = [];
+  for (var c = 1; c <= range.e.c; c++){
+    var h = celula(sheet, 0, c);
+    if (typeof h === "string" && h.trim()) etapas.push(h);
+  }
+  var pilotos = [];
+  for (var r = 1; r <= range.e.r; r++){
+    var nome = celula(sheet, r, 0);
+    if (typeof nome !== "string" || !nome.trim()) continue;
+    var valores = [];
+    for (var i = 0; i < etapas.length; i++){
+      var v = celula(sheet, r, i+1);
+      valores.push(v === null || v === undefined ? "" : String(v));
+    }
+    pilotos.push({nome:nome, valores:valores});
+  }
+  return {etapas: etapas, pilotos: pilotos};
+}
+
+function extrairDados(wb){
+  return {
+    geral: parseClassSheet(wb, "TABELA"),
+    descarte: parseClassSheet(wb, "Class. elimin. 2 piores res"),
+    presencas: parseSimpleSheet(wb, "PRESENÇAS"),
+    trocas: parseSimpleSheet(wb, "TROCA KART")
+  };
+}
+
+// ============================================================
+// Renderização das tabelas
+// ============================================================
+
+function renderClassTable(container, dados){
+  if (!dados || !dados.pilots || !dados.pilots.length){
+    container.innerHTML = '<p class="vazio" style="padding:16px;">Sem dados para exibir.</p>';
+    return;
+  }
+  var html = '<table><thead><tr class="linha-etapa"><th></th><th></th>';
+  dados.stages.forEach(function(s){
+    html += '<th colspan="4">'+s.label+(s.date ? ' · '+s.date : '')+'</th>';
+  });
+  html += '</tr><tr class="linha-campo"><th class="col-pos">#</th><th class="col-nome">Piloto</th><th class="col-total">Total</th>';
+  // total column occupies one of the header cells already accounted; rebuild properly below
+  html = '<table><thead>';
+  html += '<tr class="linha-etapa"><th class="col-pos"></th><th class="col-nome"></th><th class="col-total"></th>';
+  dados.stages.forEach(function(s){
+    html += '<th colspan="4">'+s.label+(s.date ? ' · '+s.date : '')+'</th>';
+  });
+  html += '</tr><tr class="linha-campo"><th class="col-pos">#</th><th class="col-nome">Piloto</th><th class="col-total">Total</th>';
+  dados.stages.forEach(function(){
+    html += '<th>Pos</th><th>Pts</th><th>Bônus</th><th>Pen</th>';
+  });
+  html += '</tr></thead><tbody>';
+  dados.pilots.forEach(function(p, idx){
+    html += '<tr><td class="col-pos">'+(idx+1)+'</td><td class="col-nome">'+p.nome+'</td><td class="col-total">'+p.total+'</td>';
+    p.etapas.forEach(function(e){
+      html += '<td>'+(e.pos===null? '<span class="vazio">–</span>' : e.pos)+'</td>';
+      html += '<td>'+(e.pts===null? '<span class="vazio">–</span>' : e.pts)+'</td>';
+      html += '<td>'+(e.bonus===null? '<span class="vazio">–</span>' : e.bonus)+'</td>';
+      html += '<td>'+(e.pen===null? '<span class="vazio">–</span>' : e.pen)+'</td>';
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+function renderSimpleTable(container, dados, tipo){
+  if (!dados || !dados.pilotos || !dados.pilotos.length){
+    container.innerHTML = '<p class="vazio" style="padding:16px;">Sem dados para exibir.</p>';
+    return;
+  }
+  var html = '<table><thead><tr class="linha-campo"><th class="col-nome">Piloto</th>';
+  dados.etapas.forEach(function(e){ html += '<th>'+e+'</th>'; });
+  html += '</tr></thead><tbody>';
+  dados.pilotos.forEach(function(p){
+    html += '<tr><td class="col-nome">'+p.nome+'</td>';
+    p.valores.forEach(function(v){
+      var texto = v;
+      var classe = "";
+      if (tipo === "presenca"){
+        if (/^ok$/i.test(v)) classe = "ok-presenca";
+        else if (/falt/i.test(v)) classe = "falta-presenca";
+      } else if (tipo === "troca"){
+        if (/troca/i.test(v)) classe = "marca-troca";
+      }
+      if (!v) { texto = '<span class="vazio">–</span>'; }
+      html += '<td class="'+classe+'">'+texto+'</td>';
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+function renderTudo(dados){
+  renderClassTable(document.getElementById("tabGeral"), dados.geral);
+  renderClassTable(document.getElementById("tabDescarte"), dados.descarte);
+  renderSimpleTable(document.getElementById("tabPresencas"), dados.presencas, "presenca");
+  renderSimpleTable(document.getElementById("tabTrocas"), dados.trocas, "troca");
+}
+
+// ============================================================
+// Carregamento
+// ============================================================
+
+var statusBox = document.getElementById("statusBox");
+
+function setStatus(msg, tipo){
+  statusBox.textContent = msg;
+  statusBox.className = tipo || "";
+}
+
+function popularSeletor(){
+  var sel = document.getElementById("seletorCampeonato");
+  sel.innerHTML = "";
+  CAMPEONATOS.forEach(function(camp){
+    var opt = document.createElement("option");
+    opt.value = camp.id;
+    opt.textContent = camp.nome;
+    sel.appendChild(opt);
+  });
+}
+
+function carregarCampeonato(campId){
+  var camp = CAMPEONATOS.find(function(c){ return c.id === campId; });
+  if (!camp) return;
+
+  if (camp.id === "super-master-pro" && EMBEDDED[camp.id]){
+    renderTudo(EMBEDDED[camp.id]);
+    setStatus("Exibindo dados salvos. Buscando planilha atualizada no GitHub...", "");
+  } else {
+    setStatus("Buscando planilha " + camp.arquivo + "...", "");
+  }
+
+  fetch(camp.arquivo + "?t=" + Date.now())
+    .then(function(res){
+      if (!res.ok) throw new Error("Arquivo não encontrado (" + res.status + ")");
+      return res.arrayBuffer();
+    })
+    .then(function(buf){
+      var wb = XLSX.read(buf, {type:"array", cellDates:true});
+      var dados = extrairDados(wb);
+      renderTudo(dados);
+      setStatus("Dados atualizados em " + new Date().toLocaleString("pt-BR") + ".", "ok");
+    })
+    .catch(function(err){
+      if (camp.id === "super-master-pro" && EMBEDDED[camp.id]){
+        setStatus("Não consegui buscar a planilha no GitHub (" + err.message + "). Mostrando os últimos dados salvos.", "erro");
+      } else {
+        setStatus("Não consegui carregar " + camp.arquivo + ": " + err.message + ". Confira se o arquivo foi enviado ao repositório com esse nome exato.", "erro");
+      }
+    });
+}
+
+document.getElementById("seletorCampeonato").addEventListener("change", function(e){
+  carregarCampeonato(e.target.value);
+});
+
+document.querySelectorAll(".aba").forEach(function(btn){
+  btn.addEventListener("click", function(){
+    document.querySelectorAll(".aba").forEach(function(b){ b.classList.remove("ativa"); });
+    document.querySelectorAll(".painel").forEach(function(p){ p.classList.remove("ativo"); });
+    btn.classList.add("ativa");
+    document.getElementById(btn.dataset.painel).classList.add("ativo");
+  });
+});
+
+document.getElementById("botaoTeste").addEventListener("click", function(){
+  document.getElementById("inputArquivoTeste").click();
+});
+
+document.getElementById("inputArquivoTeste").addEventListener("change", function(e){
+  var file = e.target.files[0];
+  if (!file) return;
+  setStatus("Lendo arquivo local " + file.name + "...", "");
+  var reader = new FileReader();
+  reader.onload = function(ev){
+    try {
+      var wb = XLSX.read(ev.target.result, {type:"array", cellDates:true});
+      var dados = extrairDados(wb);
+      renderTudo(dados);
+      setStatus("Pré-visualização de " + file.name + " (este teste não altera o site publicado).", "ok");
+    } catch(err){
+      setStatus("Não consegui ler esse arquivo: " + err.message, "erro");
+    }
+  };
+  reader.readAsArrayBuffer(file);
+});
+
+popularSeletor();
+carregarCampeonato(CAMPEONATOS[0].id);
+</script>
+</body>
+</html>
