@@ -10,6 +10,7 @@
     --fundo:#ffffff;
     --fundo-card:#ffffff;
     --linha:#e4e6e9;
+    --linha-forte:#aeb2b8;
     --texto:#1a1d21;
     --texto-fraco:#767c85;
     --brand:#c70540;
@@ -118,13 +119,15 @@
   .painel{ display:none; }
   .painel.ativo{ display:block; }
   .tabela-wrap{
-    overflow-x:auto;
+    overflow:auto;
+    max-height:75vh;
     background:var(--fundo-card);
     border:1px solid var(--linha);
     border-radius:10px;
   }
   table{
-    border-collapse:collapse;
+    border-collapse:separate;
+    border-spacing:0;
     width:100%;
     font-size:13px;
     white-space:nowrap;
@@ -137,6 +140,9 @@
     padding:6px 8px;
     text-align:center;
     border-bottom:1px solid var(--linha);
+    position:sticky;
+    top:0;
+    z-index:3;
   }
   thead tr.linha-campo th{
     background:#f7f8f9;
@@ -145,6 +151,12 @@
     padding:8px;
     text-align:center;
     border-bottom:2px solid var(--brand);
+    position:sticky;
+    top:29px;
+    z-index:3;
+  }
+  thead tr.linha-unica th{
+    top:0 !important;
   }
   thead th.col-pos, thead th.col-nome, thead th.col-total{
     text-align:left;
@@ -153,12 +165,14 @@
     padding:7px 8px;
     text-align:center;
     border-bottom:1px solid var(--linha);
+    border-left:1px solid var(--linha);
   }
-  tbody td.col-pos{ text-align:left; color:var(--texto-fraco); font-weight:700; width:34px; }
-  tbody td.col-nome{ text-align:left; font-weight:600; }
+  th.sep-forte, td.sep-forte{ border-left:2px solid var(--linha-forte) !important; }
+  tbody td.col-pos{ text-align:left; color:var(--texto-fraco); font-weight:700; width:34px; border-left:none; }
+  tbody td.col-nome{ text-align:left; font-weight:600; border-left:none; }
   tbody td.col-total{ text-align:left; font-weight:800; color:var(--brand); }
-  tbody tr:nth-child(odd){ background:#fafafa; }
-  tbody tr:hover{ background:rgba(199,5,64,0.06); }
+  tbody tr:nth-child(odd) td{ background:#fafafa; }
+  tbody tr:hover td{ background:rgba(199,5,64,0.06); }
   .ok-presenca{ color:var(--verde); font-weight:700; }
   .falta-presenca{ color:var(--vermelho); font-weight:700; }
   .marca-troca{ color:var(--brand); font-weight:700; }
@@ -314,26 +328,20 @@ function renderClassTable(container, dados){
     container.innerHTML = '<p class="vazio" style="padding:16px;">Sem dados para exibir.</p>';
     return;
   }
-  var html = '<table><thead><tr class="linha-etapa"><th></th><th></th>';
-  dados.stages.forEach(function(s){
-    html += '<th colspan="4">'+s.label+(s.date ? ' · '+s.date : '')+'</th>';
-  });
-  html += '</tr><tr class="linha-campo"><th class="col-pos">#</th><th class="col-nome">Piloto</th><th class="col-total">Total</th>';
-  // total column occupies one of the header cells already accounted; rebuild properly below
-  html = '<table><thead>';
+  var html = '<table><thead>';
   html += '<tr class="linha-etapa"><th class="col-pos"></th><th class="col-nome"></th><th class="col-total"></th>';
   dados.stages.forEach(function(s){
-    html += '<th colspan="4">'+s.label+(s.date ? ' · '+s.date : '')+'</th>';
+    html += '<th class="sep-forte" colspan="4">'+s.label+(s.date ? ' · '+s.date : '')+'</th>';
   });
   html += '</tr><tr class="linha-campo"><th class="col-pos">#</th><th class="col-nome">Piloto</th><th class="col-total">Total</th>';
   dados.stages.forEach(function(){
-    html += '<th>Pos</th><th>Pts</th><th>Bônus</th><th>Pen</th>';
+    html += '<th class="sep-forte">Pos</th><th>Pts</th><th>Bônus</th><th>Pen</th>';
   });
   html += '</tr></thead><tbody>';
   dados.pilots.forEach(function(p, idx){
     html += '<tr><td class="col-pos">'+(idx+1)+'</td><td class="col-nome">'+p.nome+'</td><td class="col-total">'+p.total+'</td>';
     p.etapas.forEach(function(e){
-      html += '<td>'+(e.pos===null? '<span class="vazio">–</span>' : e.pos)+'</td>';
+      html += '<td class="sep-forte">'+(e.pos===null? '<span class="vazio">–</span>' : e.pos)+'</td>';
       html += '<td>'+(e.pts===null? '<span class="vazio">–</span>' : e.pts)+'</td>';
       html += '<td>'+(e.bonus===null? '<span class="vazio">–</span>' : e.bonus)+'</td>';
       html += '<td>'+(e.pen===null? '<span class="vazio">–</span>' : e.pen)+'</td>';
@@ -342,6 +350,17 @@ function renderClassTable(container, dados){
   });
   html += '</tbody></table>';
   container.innerHTML = html;
+  ajustarCabecalhoFixo(container);
+}
+
+function ajustarCabecalhoFixo(container){
+  var linhaEtapa = container.querySelector("tr.linha-etapa");
+  var linhaCampo = container.querySelector("tr.linha-campo");
+  if (!linhaEtapa || !linhaCampo) return;
+  var altura = linhaEtapa.getBoundingClientRect().height;
+  Array.prototype.forEach.call(linhaCampo.children, function(th){
+    th.style.top = altura + "px";
+  });
 }
 
 function renderSimpleTable(container, dados, tipo){
@@ -349,19 +368,19 @@ function renderSimpleTable(container, dados, tipo){
     container.innerHTML = '<p class="vazio" style="padding:16px;">Sem dados para exibir.</p>';
     return;
   }
-  var html = '<table><thead><tr class="linha-campo"><th class="col-nome">Piloto</th>';
-  dados.etapas.forEach(function(e){ html += '<th>'+e+'</th>'; });
+  var html = '<table><thead><tr class="linha-campo linha-unica"><th class="col-nome">Piloto</th>';
+  dados.etapas.forEach(function(e){ html += '<th class="sep-forte">'+e+'</th>'; });
   html += '</tr></thead><tbody>';
   dados.pilotos.forEach(function(p){
     html += '<tr><td class="col-nome">'+p.nome+'</td>';
     p.valores.forEach(function(v){
       var texto = v;
-      var classe = "";
+      var classe = "sep-forte";
       if (tipo === "presenca"){
-        if (/^ok$/i.test(v)) classe = "ok-presenca";
-        else if (/falt/i.test(v)) classe = "falta-presenca";
+        if (/^ok$/i.test(v)) classe += " ok-presenca";
+        else if (/falt/i.test(v)) classe += " falta-presenca";
       } else if (tipo === "troca"){
-        if (/troca/i.test(v)) classe = "marca-troca";
+        if (/troca/i.test(v)) classe += " marca-troca";
       }
       if (!v) { texto = '<span class="vazio">–</span>'; }
       html += '<td class="'+classe+'">'+texto+'</td>';
@@ -441,7 +460,10 @@ document.querySelectorAll(".aba").forEach(function(btn){
     document.querySelectorAll(".aba").forEach(function(b){ b.classList.remove("ativa"); });
     document.querySelectorAll(".painel").forEach(function(p){ p.classList.remove("ativo"); });
     btn.classList.add("ativa");
-    document.getElementById(btn.dataset.painel).classList.add("ativo");
+    var painel = document.getElementById(btn.dataset.painel);
+    painel.classList.add("ativo");
+    var wrap = painel.querySelector(".tabela-wrap");
+    if (wrap) ajustarCabecalhoFixo(wrap);
   });
 });
 
