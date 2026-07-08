@@ -7,22 +7,21 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{
-    --asfalto:#15181c;
-    --asfalto2:#1d2126;
-    --linha:#2a2f36;
-    --texto:#e9ecef;
-    --texto-fraco:#8a9199;
+    --fundo:#ffffff;
+    --fundo-card:#ffffff;
+    --linha:#e4e6e9;
+    --texto:#1a1d21;
+    --texto-fraco:#767c85;
     --brand:#c70540;
     --brand-escuro:#8f0230;
-    --verde:#3ecf6a;
-    --vermelho:#e5484d;
+    --verde:#1e9e50;
+    --vermelho:#d1293a;
   }
   *{box-sizing:border-box;}
   body{
     margin:0;
     font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-    background:
-      repeating-linear-gradient(90deg,#1a1d21 0 40px,#181b1f 40px 80px);
+    background:var(--fundo);
     color:var(--texto);
     min-height:100vh;
   }
@@ -35,6 +34,10 @@
     align-items:center;
     gap:14px;
     justify-content:space-between;
+    position:sticky;
+    top:0;
+    z-index:100;
+    box-shadow:0 2px 10px rgba(0,0,0,0.06);
   }
   .marca{
     display:flex;
@@ -80,7 +83,7 @@
     padding:20px;
   }
   #statusBox{
-    background:var(--asfalto2);
+    background:#f7f2f4;
     border:1px solid var(--linha);
     border-left:4px solid var(--brand);
     padding:12px 16px;
@@ -116,7 +119,7 @@
   .painel.ativo{ display:block; }
   .tabela-wrap{
     overflow-x:auto;
-    background:var(--asfalto2);
+    background:var(--fundo-card);
     border:1px solid var(--linha);
     border-radius:10px;
   }
@@ -127,7 +130,7 @@
     white-space:nowrap;
   }
   thead tr.linha-etapa th{
-    background:#20242a;
+    background:#f7f8f9;
     color:var(--texto-fraco);
     font-weight:600;
     font-size:11px;
@@ -136,14 +139,14 @@
     border-bottom:1px solid var(--linha);
   }
   thead tr.linha-campo th{
-    background:#20242a;
+    background:#f7f8f9;
     color:var(--texto);
     font-weight:700;
     padding:8px;
     text-align:center;
     border-bottom:2px solid var(--brand);
     position:sticky;
-    top:0;
+    top:80px;
   }
   thead th.col-pos, thead th.col-nome, thead th.col-total{
     text-align:left;
@@ -156,8 +159,8 @@
   tbody td.col-pos{ text-align:left; color:var(--texto-fraco); font-weight:700; width:34px; }
   tbody td.col-nome{ text-align:left; font-weight:600; }
   tbody td.col-total{ text-align:left; font-weight:800; color:var(--brand); }
-  tbody tr:nth-child(odd){ background:rgba(255,255,255,0.02); }
-  tbody tr:hover{ background:rgba(199,5,64,0.08); }
+  tbody tr:nth-child(odd){ background:#fafafa; }
+  tbody tr:hover{ background:rgba(199,5,64,0.06); }
   .ok-presenca{ color:var(--verde); font-weight:700; }
   .falta-presenca{ color:var(--vermelho); font-weight:700; }
   .marca-troca{ color:var(--brand); font-weight:700; }
