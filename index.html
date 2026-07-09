@@ -118,8 +118,7 @@
   .painel{ display:none; }
   .painel.ativo{ display:block; margin-top:20px; }
   .tabela-wrap{
-    overflow:auto;
-    max-height:75vh;
+    overflow-x:auto;
     background:var(--fundo-card);
     border:1px solid var(--linha);
     border-radius:10px;
@@ -131,11 +130,6 @@
     font-size:13px;
     white-space:nowrap;
   }
-  thead{
-    position:sticky;
-    top:0;
-    z-index:3;
-  }
   thead tr.linha-etapa th{
     background:#f7f8f9;
     color:var(--texto-fraco);
@@ -144,6 +138,8 @@
     padding:6px 8px;
     text-align:center;
     border-bottom:1px solid var(--linha);
+    position:sticky;
+    z-index:3;
   }
   thead tr.linha-campo th{
     background:#f7f8f9;
@@ -152,6 +148,8 @@
     padding:8px;
     text-align:center;
     border-bottom:2px solid var(--brand);
+    position:sticky;
+    z-index:3;
   }
   thead th.col-pos, thead th.col-nome, thead th.col-total{
     text-align:left;
@@ -188,9 +186,11 @@
     padding:24px;
   }
   @media (max-width:640px){
-    header{ padding:14px; }
-    .marca{ font-size:16px; }
+    header{ padding:10px 14px; gap:8px; }
+    .marca img{ height:38px; }
     select#seletorCampeonato{ min-width:0; flex:1; }
+    .abas{ width:100%; gap:2px; }
+    .aba{ padding:8px 10px; font-size:12px; }
   }
 </style>
 </head>
@@ -353,19 +353,42 @@ function renderClassTable(container, dados){
   });
   html += '</tbody></table>';
   container.innerHTML = html;
-  ajustarColunasFixas(container);
+  ajustarPosicoesFixas(container);
 }
 
-function ajustarColunasFixas(container){
-  var posEl = container.querySelector("th.col-pos.col-fixo");
-  var nomeEl = container.querySelector("th.col-nome.col-fixo");
-  if (!posEl || !nomeEl) return;
-  posEl.style.left = "0px";
-  container.querySelectorAll(".col-pos.col-fixo").forEach(function(el){ el.style.left = "0px"; });
-  var posWidth = posEl.getBoundingClientRect().width;
-  container.querySelectorAll(".col-nome.col-fixo").forEach(function(el){ el.style.left = posWidth + "px"; });
-  var nomeWidth = nomeEl.getBoundingClientRect().width;
-  container.querySelectorAll(".col-total.col-fixo").forEach(function(el){ el.style.left = (posWidth + nomeWidth) + "px"; });
+function alturaCabecalhoPagina(){
+  var header = document.querySelector("header");
+  return header ? Math.ceil(header.getBoundingClientRect().height) : 0;
+}
+
+function ajustarPosicoesFixas(container){
+  var hHeader = alturaCabecalhoPagina();
+
+  // trava vertical: cabeçalho da tabela gruda logo abaixo do cabeçalho da pagina
+  var linhaEtapa = container.querySelector("tr.linha-etapa");
+  var linhaCampo = container.querySelector("tr.linha-campo");
+  if (linhaEtapa){
+    Array.prototype.forEach.call(linhaEtapa.children, function(th){ th.style.top = hHeader + "px"; });
+  }
+  if (linhaCampo){
+    var extra = linhaEtapa ? linhaEtapa.getBoundingClientRect().height : 0;
+    Array.prototype.forEach.call(linhaCampo.children, function(th){ th.style.top = (hHeader + extra) + "px"; });
+  }
+
+  // trava horizontal: colunas Piloto/Total (ou só Piloto) grudam na esquerda
+  var posEl = container.querySelector(".col-pos.col-fixo");
+  var nomeEl = container.querySelector(".col-nome.col-fixo");
+  if (posEl){
+    container.querySelectorAll(".col-pos.col-fixo").forEach(function(el){ el.style.left = "0px"; });
+    var posWidth = posEl.getBoundingClientRect().width;
+    container.querySelectorAll(".col-nome.col-fixo").forEach(function(el){ el.style.left = posWidth + "px"; });
+    if (nomeEl){
+      var nomeWidth = nomeEl.getBoundingClientRect().width;
+      container.querySelectorAll(".col-total.col-fixo").forEach(function(el){ el.style.left = (posWidth + nomeWidth) + "px"; });
+    }
+  } else if (nomeEl){
+    container.querySelectorAll(".col-nome.col-fixo").forEach(function(el){ el.style.left = "0px"; });
+  }
 }
 
 function renderSimpleTable(container, dados, tipo){
@@ -394,7 +417,7 @@ function renderSimpleTable(container, dados, tipo){
   });
   html += '</tbody></table>';
   container.innerHTML = html;
-  container.querySelectorAll(".col-nome.col-fixo").forEach(function(el){ el.style.left = "0px"; });
+  ajustarPosicoesFixas(container);
 }
 
 function renderTudo(dados){
@@ -470,7 +493,7 @@ document.querySelectorAll(".aba").forEach(function(btn){
     painel.classList.add("ativo");
     var wrap = painel.querySelector(".tabela-wrap");
     if (wrap) {
-      ajustarColunasFixas(wrap);
+      ajustarPosicoesFixas(wrap);
     }
   });
 });
@@ -497,14 +520,23 @@ document.getElementById("inputArquivoTeste").addEventListener("change", function
   reader.readAsArrayBuffer(file);
 });
 
-window.addEventListener("resize", function(){
+function recalcularPainelAtivo(){
   var painelAtivo = document.querySelector(".painel.ativo");
   if (!painelAtivo) return;
   var wrap = painelAtivo.querySelector(".tabela-wrap");
-  if (wrap) {
-    ajustarColunasFixas(wrap);
+  if (wrap) ajustarPosicoesFixas(wrap);
+}
+
+window.addEventListener("resize", recalcularPainelAtivo);
+
+var logoHeader = document.querySelector(".marca img");
+if (logoHeader) {
+  if (logoHeader.complete) {
+    recalcularPainelAtivo();
+  } else {
+    logoHeader.addEventListener("load", recalcularPainelAtivo);
   }
-});
+}
 
 popularSeletor();
 carregarCampeonato(CAMPEONATOS[0].id);
