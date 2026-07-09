@@ -97,27 +97,26 @@
   #statusBox.erro{ display:block; border-left-color:var(--vermelho); color:var(--texto); }
   .abas{
     display:flex;
-    gap:6px;
-    margin-bottom:16px;
+    gap:4px;
     flex-wrap:wrap;
-    border-bottom:1px solid var(--linha);
   }
   .aba{
     background:transparent;
     border:none;
     color:var(--texto-fraco);
-    padding:12px 16px;
-    font-size:14px;
+    padding:10px 14px;
+    font-size:13px;
     font-weight:700;
     cursor:pointer;
     border-bottom:3px solid transparent;
+    white-space:nowrap;
   }
   .aba.ativa{
     color:var(--brand);
     border-bottom-color:var(--brand);
   }
   .painel{ display:none; }
-  .painel.ativo{ display:block; }
+  .painel.ativo{ display:block; margin-top:20px; }
   .tabela-wrap{
     overflow:auto;
     max-height:75vh;
@@ -199,6 +198,12 @@
 
 <header>
   <div class="marca"><img src="logo.png" alt="VIAKART"></div>
+  <div class="abas">
+    <button class="aba ativa" data-painel="painelGeral">Classificação</button>
+    <button class="aba" data-painel="painelDescarte">Descarte 2 piores</button>
+    <button class="aba" data-painel="painelPresencas">Presenças</button>
+    <button class="aba" data-painel="painelTrocas">Trocas de kart</button>
+  </div>
   <div class="controles">
     <select id="seletorCampeonato"></select>
     <button class="botao-teste" id="botaoTeste">↑ Testar arquivo</button>
@@ -208,13 +213,6 @@
 
 <main>
   <div id="statusBox"></div>
-
-  <div class="abas">
-    <button class="aba ativa" data-painel="painelGeral">Classificação</button>
-    <button class="aba" data-painel="painelDescarte">Descarte 2 piores</button>
-    <button class="aba" data-painel="painelPresencas">Presenças</button>
-    <button class="aba" data-painel="painelTrocas">Trocas de kart</button>
-  </div>
 
   <div class="painel ativo" id="painelGeral"><div class="tabela-wrap" id="tabGeral"></div></div>
   <div class="painel" id="painelDescarte"><div class="tabela-wrap" id="tabDescarte"></div></div>
