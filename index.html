@@ -136,7 +136,10 @@
     color:var(--texto-fraco);
     font-weight:600;
     font-size:11px;
-    padding:6px 8px;
+    height:28px;
+    padding:0 8px;
+    box-sizing:border-box;
+    vertical-align:middle;
     text-align:center;
     border-bottom:1px solid var(--linha);
     position:sticky;
@@ -151,7 +154,11 @@
     text-align:center;
     border-bottom:2px solid var(--brand);
     position:sticky;
+    top:28px;
     z-index:3;
+  }
+  thead tr.linha-campo.cabecalho-unico th{
+    top:0;
   }
   thead th.col-pos, thead th.col-nome, thead th.col-total{
     text-align:left;
@@ -375,17 +382,6 @@ function renderClassTable(container, dados){
 }
 
 function ajustarPosicoesFixas(container){
-  // trava vertical: 2ª linha do cabeçalho gruda logo abaixo da 1ª,
-  // com uma margem de seguranca para nao cortar o texto
-  var linhaEtapa = container.querySelector("tr.linha-etapa");
-  var linhaCampo = container.querySelector("tr.linha-campo");
-  if (linhaEtapa && linhaCampo){
-    var altura = Math.ceil(linhaEtapa.getBoundingClientRect().height) + 2;
-    Array.prototype.forEach.call(linhaCampo.children, function(th){ th.style.top = altura + "px"; });
-  } else if (linhaCampo){
-    Array.prototype.forEach.call(linhaCampo.children, function(th){ th.style.top = "0px"; });
-  }
-
   // trava horizontal: colunas Piloto/Total (ou só Piloto) grudam na esquerda
   var posEl = container.querySelector(".col-pos.col-fixo");
   var nomeEl = container.querySelector(".col-nome.col-fixo");
@@ -407,7 +403,7 @@ function renderSimpleTable(container, dados, tipo){
     container.innerHTML = '<p class="vazio" style="padding:16px;">Sem dados para exibir.</p>';
     return;
   }
-  var html = '<table><thead><tr class="linha-campo"><th class="col-nome col-fixo borda-fixa">Piloto</th>';
+  var html = '<table><thead><tr class="linha-campo cabecalho-unico"><th class="col-nome col-fixo borda-fixa">Piloto</th>';
   dados.etapas.forEach(function(e){ html += '<th class="sep-forte">'+e+'</th>'; });
   html += '</tr></thead><tbody>';
   dados.pilotos.forEach(function(p){
