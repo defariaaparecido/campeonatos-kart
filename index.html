@@ -118,7 +118,8 @@
   .painel{ display:none; }
   .painel.ativo{ display:block; margin-top:20px; }
   .tabela-wrap{
-    overflow-x:auto;
+    overflow:auto;
+    max-height:70vh;
     background:var(--fundo-card);
     border:1px solid var(--linha);
     border-radius:10px;
@@ -139,6 +140,7 @@
     text-align:center;
     border-bottom:1px solid var(--linha);
     position:sticky;
+    top:0;
     z-index:3;
   }
   thead tr.linha-campo th{
@@ -356,23 +358,16 @@ function renderClassTable(container, dados){
   ajustarPosicoesFixas(container);
 }
 
-function alturaCabecalhoPagina(){
-  var header = document.querySelector("header");
-  return header ? Math.ceil(header.getBoundingClientRect().height) : 0;
-}
-
 function ajustarPosicoesFixas(container){
-  var hHeader = alturaCabecalhoPagina();
-
-  // trava vertical: cabeçalho da tabela gruda logo abaixo do cabeçalho da pagina
+  // trava vertical: 2ª linha do cabeçalho gruda logo abaixo da 1ª,
+  // com uma margem de seguranca para nao cortar o texto
   var linhaEtapa = container.querySelector("tr.linha-etapa");
   var linhaCampo = container.querySelector("tr.linha-campo");
-  if (linhaEtapa){
-    Array.prototype.forEach.call(linhaEtapa.children, function(th){ th.style.top = hHeader + "px"; });
-  }
-  if (linhaCampo){
-    var extra = linhaEtapa ? linhaEtapa.getBoundingClientRect().height : 0;
-    Array.prototype.forEach.call(linhaCampo.children, function(th){ th.style.top = (hHeader + extra) + "px"; });
+  if (linhaEtapa && linhaCampo){
+    var altura = Math.ceil(linhaEtapa.getBoundingClientRect().height) + 2;
+    Array.prototype.forEach.call(linhaCampo.children, function(th){ th.style.top = altura + "px"; });
+  } else if (linhaCampo){
+    Array.prototype.forEach.call(linhaCampo.children, function(th){ th.style.top = "0px"; });
   }
 
   // trava horizontal: colunas Piloto/Total (ou só Piloto) grudam na esquerda
