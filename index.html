@@ -259,7 +259,20 @@ function celula(sheet, r, c){
   return cell.v;
 }
 
-function parseClassSheet(wb, nomeAba){
+function encontrarAba(wb, candidatos){
+  // candidatos: lista de termos-chave (minusculos) que devem aparecer no nome da aba
+  var nomes = wb.SheetNames;
+  for (var i = 0; i < nomes.length; i++){
+    var nomeMin = nomes[i].toLowerCase();
+    var bate = candidatos.every(function(termo){ return nomeMin.indexOf(termo) !== -1; });
+    if (bate) return nomes[i];
+  }
+  return null;
+}
+
+function parseClassSheet(wb, candidatos){
+  var nomeAba = encontrarAba(wb, candidatos);
+  if (!nomeAba) return null;
   var sheet = wb.Sheets[nomeAba];
   if (!sheet) return null;
   var range = XLSX.utils.decode_range(sheet["!ref"]);
@@ -292,7 +305,9 @@ function parseClassSheet(wb, nomeAba){
   };
 }
 
-function parseSimpleSheet(wb, nomeAba){
+function parseSimpleSheet(wb, candidatos){
+  var nomeAba = encontrarAba(wb, candidatos);
+  if (!nomeAba) return null;
   var sheet = wb.Sheets[nomeAba];
   if (!sheet) return null;
   var range = XLSX.utils.decode_range(sheet["!ref"]);
@@ -317,12 +332,13 @@ function parseSimpleSheet(wb, nomeAba){
 
 function extrairDados(wb){
   return {
-    geral: parseClassSheet(wb, "TABELA"),
-    descarte: parseClassSheet(wb, "Class. elimin. 2 piores res"),
-    presencas: parseSimpleSheet(wb, "PRESENÇAS"),
-    trocas: parseSimpleSheet(wb, "TROCA KART")
+    geral: parseClassSheet(wb, ["tabela"]),
+    descarte: parseClassSheet(wb, ["elimin", "pior"]),
+    presencas: parseSimpleSheet(wb, ["presen"]),
+    trocas: parseSimpleSheet(wb, ["troca", "kart"])
   };
 }
+
 
 // ============================================================
 // Renderização das tabelas
