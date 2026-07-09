@@ -132,6 +132,11 @@
     font-size:13px;
     white-space:nowrap;
   }
+  thead{
+    position:sticky;
+    top:0;
+    z-index:3;
+  }
   thead tr.linha-etapa th{
     background:#f7f8f9;
     color:var(--texto-fraco);
@@ -140,9 +145,6 @@
     padding:6px 8px;
     text-align:center;
     border-bottom:1px solid var(--linha);
-    position:sticky;
-    top:0;
-    z-index:3;
   }
   thead tr.linha-campo th{
     background:#f7f8f9;
@@ -151,12 +153,6 @@
     padding:8px;
     text-align:center;
     border-bottom:2px solid var(--brand);
-    position:sticky;
-    top:29px;
-    z-index:3;
-  }
-  thead tr.linha-unica th{
-    top:0 !important;
   }
   thead th.col-pos, thead th.col-nome, thead th.col-total{
     text-align:left;
@@ -359,18 +355,7 @@ function renderClassTable(container, dados){
   });
   html += '</tbody></table>';
   container.innerHTML = html;
-  ajustarCabecalhoFixo(container);
   ajustarColunasFixas(container);
-}
-
-function ajustarCabecalhoFixo(container){
-  var linhaEtapa = container.querySelector("tr.linha-etapa");
-  var linhaCampo = container.querySelector("tr.linha-campo");
-  if (!linhaEtapa || !linhaCampo) return;
-  var altura = linhaEtapa.getBoundingClientRect().height;
-  Array.prototype.forEach.call(linhaCampo.children, function(th){
-    th.style.top = altura + "px";
-  });
 }
 
 function ajustarColunasFixas(container){
@@ -390,7 +375,7 @@ function renderSimpleTable(container, dados, tipo){
     container.innerHTML = '<p class="vazio" style="padding:16px;">Sem dados para exibir.</p>';
     return;
   }
-  var html = '<table><thead><tr class="linha-campo linha-unica"><th class="col-nome col-fixo borda-fixa">Piloto</th>';
+  var html = '<table><thead><tr class="linha-campo"><th class="col-nome col-fixo borda-fixa">Piloto</th>';
   dados.etapas.forEach(function(e){ html += '<th class="sep-forte">'+e+'</th>'; });
   html += '</tr></thead><tbody>';
   dados.pilotos.forEach(function(p){
@@ -487,7 +472,6 @@ document.querySelectorAll(".aba").forEach(function(btn){
     painel.classList.add("ativo");
     var wrap = painel.querySelector(".tabela-wrap");
     if (wrap) {
-      ajustarCabecalhoFixo(wrap);
       ajustarColunasFixas(wrap);
     }
   });
@@ -520,7 +504,6 @@ window.addEventListener("resize", function(){
   if (!painelAtivo) return;
   var wrap = painelAtivo.querySelector(".tabela-wrap");
   if (wrap) {
-    ajustarCabecalhoFixo(wrap);
     ajustarColunasFixas(wrap);
   }
 });
