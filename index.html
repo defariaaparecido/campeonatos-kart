@@ -19,12 +19,16 @@
     --vermelho:#d1293a;
   }
   *{box-sizing:border-box;}
+  html{
+    overscroll-behavior-y: none;
+  }
   body{
     margin:0;
     font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;
     background:var(--fundo);
     color:var(--texto);
     min-height:100vh;
+    overscroll-behavior-y: none;
   }
   header{
     background:#ffffff;
@@ -123,6 +127,7 @@
     background:var(--fundo-card);
     border:1px solid var(--linha);
     border-radius:10px;
+    overscroll-behavior:contain;
   }
   table{
     border-collapse:separate;
@@ -208,8 +213,8 @@
 <header>
   <div class="marca"><img src="logo.png" alt="VIAKART"></div>
   <div class="abas">
-    <button class="aba ativa" data-painel="painelGeral">Classificação</button>
-    <button class="aba" data-painel="painelDescarte">Descarte 2 piores</button>
+    <button class="aba ativa" data-painel="painelDescarte">Classificação</button>
+    <button class="aba" data-painel="painelEvolucao">Evolução</button>
     <button class="aba" data-painel="painelPresencas">Presenças</button>
     <button class="aba" data-painel="painelTrocas">Trocas de kart</button>
   </div>
@@ -223,8 +228,8 @@
 <main>
   <div id="statusBox"></div>
 
-  <div class="painel ativo" id="painelGeral"><div class="tabela-wrap" id="tabGeral"></div></div>
-  <div class="painel" id="painelDescarte"><div class="tabela-wrap" id="tabDescarte"></div></div>
+  <div class="painel ativo" id="painelDescarte"><div class="tabela-wrap" id="tabDescarte"></div></div>
+  <div class="painel" id="painelEvolucao"><div class="tabela-wrap" id="tabEvolucao"></div></div>
   <div class="painel" id="painelPresencas"><div class="tabela-wrap" id="tabPresencas"></div></div>
   <div class="painel" id="painelTrocas"><div class="tabela-wrap" id="tabTrocas"></div></div>
 </main>
@@ -337,10 +342,44 @@ function parseSimpleSheet(wb, candidatos){
   return {etapas: etapas, pilotos: pilotos};
 }
 
+function parseEvolucaoSheet(wb, candidatos){
+  var nomeAba = encontrarAba(wb, candidatos);
+  if (!nomeAba) return null;
+  var sheet = wb.Sheets[nomeAba];
+  if (!sheet) return null;
+  var range = XLSX.utils.decode_range(sheet["!ref"]);
+  var stageCols = [];
+  for (var c = 0; c <= range.e.c; c++){
+    var v = celula(sheet, 1, c);
+    if (typeof v === "string" && v.toLowerCase().indexOf("etapa") !== -1){
+      stageCols.push({col:c, label:v, date:celula(sheet,2,c)});
+    }
+  }
+  var posicoes = [];
+  for (var r = 4; r <= range.e.r; r++){
+    var temDado = stageCols.some(function(st){ return celula(sheet, r, st.col) !== null; });
+    if (!temDado) break;
+    var etapas = stageCols.map(function(st){
+      return {
+        piloto: celula(sheet, r, st.col),
+        pontos: limpar(celula(sheet, r, st.col+1)),
+        difLider: limpar(celula(sheet, r, st.col+2)),
+        dif5: limpar(celula(sheet, r, st.col+3)),
+        difProximo: limpar(celula(sheet, r, st.col+4))
+      };
+    });
+    posicoes.push({posicao: r-3, etapas: etapas});
+  }
+  return {
+    stages: stageCols.map(function(s){ return {label:s.label, date:s.date}; }),
+    posicoes: posicoes
+  };
+}
+
 function extrairDados(wb){
   return {
-    geral: parseClassSheet(wb, ["tabela"]),
     descarte: parseClassSheet(wb, ["elimin", "pior"]),
+    evolucao: parseEvolucaoSheet(wb, ["evol"]),
     presencas: parseSimpleSheet(wb, ["presen"]),
     trocas: parseSimpleSheet(wb, ["troca", "kart"])
   };
@@ -427,9 +466,40 @@ function renderSimpleTable(container, dados, tipo){
   ajustarPosicoesFixas(container);
 }
 
+function renderEvolucaoTable(container, dados){
+  if (!dados || !dados.posicoes || !dados.posicoes.length){
+    container.innerHTML = '<p class="vazio" style="padding:16px;">Sem dados para exibir.</p>';
+    return;
+  }
+  var html = '<table><thead>';
+  html += '<tr class="linha-etapa"><th class="col-pos col-fixo borda-fixa"></th>';
+  dados.stages.forEach(function(s){
+    html += '<th class="sep-forte" colspan="5">'+s.label+(s.date ? ' · '+s.date : '')+'</th>';
+  });
+  html += '</tr><tr class="linha-campo"><th class="col-pos col-fixo borda-fixa">#</th>';
+  dados.stages.forEach(function(){
+    html += '<th class="sep-forte">Piloto</th><th>Pontos</th><th>Dif. Líder</th><th>Dif. 5º</th><th>Dif. Próximo</th>';
+  });
+  html += '</tr></thead><tbody>';
+  dados.posicoes.forEach(function(p){
+    html += '<tr><td class="col-pos col-fixo borda-fixa">'+p.posicao+'</td>';
+    p.etapas.forEach(function(e){
+      html += '<td class="sep-forte">'+(e.piloto===null? '<span class="vazio">–</span>' : e.piloto)+'</td>';
+      html += '<td>'+(e.pontos===null? '<span class="vazio">–</span>' : e.pontos)+'</td>';
+      html += '<td>'+(e.difLider===null? '<span class="vazio">–</span>' : e.difLider)+'</td>';
+      html += '<td>'+(e.dif5===null? '<span class="vazio">–</span>' : e.dif5)+'</td>';
+      html += '<td>'+(e.difProximo===null? '<span class="vazio">–</span>' : e.difProximo)+'</td>';
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  container.innerHTML = html;
+  ajustarPosicoesFixas(container);
+}
+
 function renderTudo(dados){
-  renderClassTable(document.getElementById("tabGeral"), dados.geral);
   renderClassTable(document.getElementById("tabDescarte"), dados.descarte);
+  renderEvolucaoTable(document.getElementById("tabEvolucao"), dados.evolucao);
   renderSimpleTable(document.getElementById("tabPresencas"), dados.presencas, "presenca");
   renderSimpleTable(document.getElementById("tabTrocas"), dados.trocas, "troca");
 }
