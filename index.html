@@ -378,7 +378,7 @@ function parseEvolucaoSheet(wb, candidatos){
 
 function extrairDados(wb){
   return {
-    descarte: parseClassSheet(wb, ["elimin", "pior"]),
+    descarte: parseClassSheet(wb, ["classifica"]),
     evolucao: parseEvolucaoSheet(wb, ["evol"]),
     presencas: parseSimpleSheet(wb, ["presen"]),
     trocas: parseSimpleSheet(wb, ["troca", "kart"])
