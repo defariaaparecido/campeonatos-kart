@@ -220,7 +220,7 @@
   </div>
   <div class="controles">
     <select id="seletorCampeonato"></select>
-    <button class="botao-teste" id="botaoTeste">↑ Testar arquivo</button>
+    <button class="botao-teste" id="botaoTeste" style="display:none;">↑ Testar arquivo</button>
     <input type="file" id="inputArquivoTeste" accept=".xlsm,.xlsx">
   </div>
 </header>
@@ -509,6 +509,9 @@ function renderTudo(dados){
 // ============================================================
 
 var statusBox = document.getElementById("statusBox");
+  if (new URLSearchParams(location.search).get("admin") === "cido") {
+  document.getElementById("botaoTeste").style.display = "";
+}
 
 function setStatus(msg, tipo){
   statusBox.textContent = msg;
