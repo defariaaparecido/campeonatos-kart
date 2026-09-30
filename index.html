@@ -436,7 +436,6 @@ function parseLargadaSheet(wb, candidatos){
       status = m[2].charAt(0).toUpperCase() + m[2].slice(1).toLowerCase();
     }
     var peso = celula(sheet, r, 3);
-    if (typeof peso === "string" && /sem info/i.test(peso)) peso = null;
     if (typeof peso === "number") peso = String(peso).replace(".", ",");
     var lastro = celula(sheet, r, 4);
     if (typeof lastro === "string" && !lastro.trim()) lastro = null;
@@ -603,7 +602,9 @@ function renderLargadaTable(container, info, dados){
     html += '<td class="col-nome col-fixo borda-fixa">' + p.nome + '</td>';
     html += '<td>' + selo + '</td>';
     html += '<td>' + (p.kart === null ? traco : p.kart) + '</td>';
-    html += '<td>' + (p.peso === null ? traco : p.peso) + '</td>';
+    var textoPeso = traco;
+    if (p.peso !== null) textoPeso = (typeof p.peso === "string" && /sem info/i.test(p.peso)) ? '<span class="vazio">' + p.peso + '</span>' : p.peso;
+    html += '<td>' + textoPeso + '</td>';
     html += '<td>' + (p.lastro === null ? traco : p.lastro) + '</td>';
     html += '</tr>';
   });
