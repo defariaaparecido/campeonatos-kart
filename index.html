@@ -193,6 +193,27 @@
   .falta-presenca{ color:var(--vermelho); font-weight:700; }
   .marca-troca{ color:var(--brand); font-weight:700; }
   .vazio{ color:var(--texto-fraco); }
+  .largada-info{
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:space-between;
+    gap:6px 16px;
+    margin-bottom:10px;
+    font-size:14px;
+  }
+  .largada-info .titulo-largada{ font-weight:800; color:var(--brand); }
+  .largada-info .atualizado-largada{ color:var(--texto-fraco); font-size:12px; align-self:center; }
+  .status-largada{
+    display:inline-block;
+    padding:3px 10px;
+    border-radius:12px;
+    font-size:12px;
+    font-weight:700;
+  }
+  .status-presente{ background:#e3f5ea; color:#15803d; }
+  .status-pendente{ background:#fdf3d8; color:#a16207; }
+  .status-ausente{ background:#fde4e7; color:#b91c1c; }
+  tbody tr.linha-ausente td.col-nome{ color:var(--texto-fraco); text-decoration:line-through; }
   footer{
     text-align:center;
     color:var(--texto-fraco);
@@ -203,8 +224,8 @@
     header{ padding:10px 14px; gap:8px; }
     .marca img{ height:38px; }
     select#seletorCampeonato{ min-width:0; flex:1; }
-    .abas{ width:100%; gap:2px; }
-    .aba{ padding:8px 10px; font-size:12px; }
+    .abas{ width:100%; gap:0; flex-wrap:nowrap; justify-content:space-between; overflow-x:auto; }
+    .aba{ padding:8px 4px; font-size:12px; }
   }
 </style>
 </head>
@@ -217,6 +238,7 @@
     <button class="aba" data-painel="painelEvolucao">Evolução</button>
     <button class="aba" data-painel="painelPresencas">Presenças</button>
     <button class="aba" data-painel="painelTrocas">Trocas de kart</button>
+    <button class="aba" data-painel="painelLargada">Largada</button>
   </div>
   <div class="controles">
     <select id="seletorCampeonato"></select>
@@ -232,6 +254,7 @@
   <div class="painel" id="painelEvolucao"><div class="tabela-wrap" id="tabEvolucao"></div></div>
   <div class="painel" id="painelPresencas"><div class="tabela-wrap" id="tabPresencas"></div></div>
   <div class="painel" id="painelTrocas"><div class="tabela-wrap" id="tabTrocas"></div></div>
+  <div class="painel" id="painelLargada"><div class="largada-info" id="infoLargada"></div><div class="tabela-wrap" id="tabLargada"></div></div>
 </main>
 
 <footer>VIAKART · dados atualizados diretamente da planilha do campeonato</footer>
@@ -376,12 +399,68 @@ function parseEvolucaoSheet(wb, candidatos){
   };
 }
 
+function parseLargadaSheet(wb, candidatos){
+  // Aba LARGADA: título em A2, data de atualização em E2,
+  // cabeçalho na linha 3 (POS., KART, PILOTO, PESO, LASTRO),
+  // pilotos a partir da linha 4. Nome e status vêm na mesma
+  // célula, separados por espaços (ex.: "Jarbas Reis    Presente").
+  var nomeAba = encontrarAba(wb, candidatos);
+  if (!nomeAba) return null;
+  var sheet = wb.Sheets[nomeAba];
+  if (!sheet || !sheet["!ref"]) return null;
+  var range = XLSX.utils.decode_range(sheet["!ref"]);
+
+  var titulo = celula(sheet, 1, 0);
+  var celAtualizado = sheet[XLSX.utils.encode_cell({r:1, c:4})];
+  var atualizado = null;
+  if (celAtualizado){
+    if (celAtualizado.v instanceof Date && !isNaN(celAtualizado.v)){
+      var d = celAtualizado.v;
+      atualizado = String(d.getDate()).padStart(2,"0") + "/" + String(d.getMonth()+1).padStart(2,"0") + "/" + d.getFullYear() +
+        " " + String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
+    } else if (celAtualizado.w) {
+      atualizado = celAtualizado.w;
+    }
+  }
+
+  var pilotos = [];
+  for (var r = 3; r <= range.e.r; r++){
+    var celNome = sheet[XLSX.utils.encode_cell({r:r, c:2})];
+    if (!celNome || celNome.t === "e" || typeof celNome.v !== "string") continue;
+    var bruto = celNome.v.trim();
+    if (!bruto || /^#n\/?a/i.test(bruto)) continue;
+    var nome = bruto, status = "";
+    var m = bruto.match(/^(.*?)\s+(presente|pendente|ausente)$/i);
+    if (m){
+      nome = m[1].trim();
+      status = m[2].charAt(0).toUpperCase() + m[2].slice(1).toLowerCase();
+    }
+    var peso = celula(sheet, r, 3);
+    if (typeof peso === "string" && /sem info/i.test(peso)) peso = null;
+    if (typeof peso === "number") peso = String(peso).replace(".", ",");
+    var lastro = celula(sheet, r, 4);
+    if (typeof lastro === "string" && !lastro.trim()) lastro = null;
+    var kart = celula(sheet, r, 1);
+    if (typeof kart === "string" && !kart.trim()) kart = null;
+    pilotos.push({
+      pos: limpar(celula(sheet, r, 0)),
+      kart: kart,
+      nome: nome,
+      status: status,
+      peso: peso,
+      lastro: lastro
+    });
+  }
+  return {titulo: titulo, atualizado: atualizado, pilotos: pilotos};
+}
+
 function extrairDados(wb){
   return {
     descarte: parseClassSheet(wb, ["classifica"]),
     evolucao: parseEvolucaoSheet(wb, ["evol"]),
     presencas: parseSimpleSheet(wb, ["presen"]),
-    trocas: parseSimpleSheet(wb, ["troca", "kart"])
+    trocas: parseSimpleSheet(wb, ["troca", "kart"]),
+    largada: parseLargadaSheet(wb, ["largada"])
   };
 }
 
@@ -497,11 +576,48 @@ function renderEvolucaoTable(container, dados){
   ajustarPosicoesFixas(container);
 }
 
+function renderLargadaTable(container, info, dados){
+  if (!dados || !dados.pilotos || !dados.pilotos.length){
+    info.innerHTML = "";
+    container.innerHTML = '<p class="vazio" style="padding:16px;">Largada ainda não publicada para este campeonato.</p>';
+    return;
+  }
+  var cab = '';
+  if (dados.titulo) cab += '<span class="titulo-largada">' + dados.titulo + '</span>';
+  if (dados.atualizado) cab += '<span class="atualizado-largada">Atualizado em ' + dados.atualizado + '</span>';
+  info.innerHTML = cab;
+
+  var traco = '<span class="vazio">–</span>';
+  var html = '<table><thead><tr class="linha-campo cabecalho-unico">';
+  html += '<th class="col-pos col-fixo">Pos</th><th class="col-nome col-fixo borda-fixa">Piloto</th>';
+  html += '<th>Status</th><th>Kart</th><th>Peso (kg)</th><th>Lastro</th>';
+  html += '</tr></thead><tbody>';
+  dados.pilotos.forEach(function(p){
+    var classeLinha = /ausente/i.test(p.status) ? ' class="linha-ausente"' : '';
+    var selo = traco;
+    if (p.status){
+      selo = '<span class="status-largada status-' + p.status.toLowerCase() + '">' + p.status + '</span>';
+    }
+    html += '<tr' + classeLinha + '>';
+    html += '<td class="col-pos col-fixo">' + (p.pos === null ? traco : p.pos) + '</td>';
+    html += '<td class="col-nome col-fixo borda-fixa">' + p.nome + '</td>';
+    html += '<td>' + selo + '</td>';
+    html += '<td>' + (p.kart === null ? traco : p.kart) + '</td>';
+    html += '<td>' + (p.peso === null ? traco : p.peso) + '</td>';
+    html += '<td>' + (p.lastro === null ? traco : p.lastro) + '</td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  container.innerHTML = html;
+  ajustarPosicoesFixas(container);
+}
+
 function renderTudo(dados){
   renderClassTable(document.getElementById("tabDescarte"), dados.descarte);
   renderEvolucaoTable(document.getElementById("tabEvolucao"), dados.evolucao);
   renderSimpleTable(document.getElementById("tabPresencas"), dados.presencas, "presenca");
   renderSimpleTable(document.getElementById("tabTrocas"), dados.trocas, "troca");
+  renderLargadaTable(document.getElementById("tabLargada"), document.getElementById("infoLargada"), dados.largada);
 }
 
 // ============================================================
